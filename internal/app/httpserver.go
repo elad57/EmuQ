@@ -1,23 +1,23 @@
 package app
 
 import (
-	"net/http"
-	"fmt"
-	"log"
 	"encoding/json"
 	"io/ioutil"
+	"log"
+	"net/http"
 
-	"golang.org/x/exp/maps"
-	"github.com/gorilla/mux"
 	"github.com/elad57/emuq/internal/broker"
+	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
 )
 
 
-func NewHttpServer(b *broker.Broker) *HttpServer {
+func NewHttpServer(b *broker.Broker, logger *zap.Logger) *HttpServer {
 	router := mux.NewRouter()
 	
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Welcome to EmuQ!")
+		logger.Info("Welcome to EmuQ!")
 	})	
 
 	router.HandleFunc("/enviorments", func(w http.ResponseWriter, r *http.Request) {
@@ -46,14 +46,18 @@ func NewHttpServer(b *broker.Broker) *HttpServer {
 		enviormentName := mux.Vars(r)["enviorment"]
 		queueName := mux.Vars(r)["queue"]
 		body, err := ioutil.ReadAll(r.Body) 
+	
 		defer r.Body.Close()
+
+		logger.Info(queueName)
 		if err != nil {
-			fmt.Println(err)
+			logger.Sugar().Error(err)
 			w.WriteHeader(500)
 			return
 		}
-
+		
 		b.PublishMessage(enviormentName,queueName, *broker.NewBrokerMessage(body))
+		logger.Info(enviormentName)
 	}).Methods("POST")
 			
 	return &HttpServer{

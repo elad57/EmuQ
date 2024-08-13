@@ -3,6 +3,8 @@ package broker
 import (
 	"net"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Message struct {
@@ -25,6 +27,7 @@ type Enviorment struct {
 }
 
 type BrokerState struct {
+	Logger 		*zap.Logger
 	Enviorments map[string]Enviorment
 }
 

@@ -1,15 +1,17 @@
 package app
 
 import (
-	"fmt"
 	"net"
+
+	"go.uber.org/zap"
 )
 
-func NewTCPServer(listenAddress string) *TCPServer {
+func NewTCPServer(listenAddress string, logger *zap.Logger) *TCPServer {
 	return &TCPServer{
 		listenAddress: listenAddress,
 		quitch:        make(chan struct{}),
 		MsgChannel:    make(chan TCPMessage),
+		Logger:        logger,
 	}
 }
 
@@ -33,11 +35,11 @@ func (s *TCPServer) accepctConnections() {
 	for {
 		conn, err := s.ln.Accept()
 		if err != nil {
-			println("Error accepting new connetions", err)
+			s.Logger.Sugar().Errorf("Error accepting new connetions %s", err)
 			continue
 		}
 
-		fmt.Println("New connection from:", conn.RemoteAddr())
+		s.Logger.Sugar().Infof("New connection from:%s", conn.RemoteAddr())
 		go s.readMessageInConnetion(conn)
 	}
 }

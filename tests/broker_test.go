@@ -5,14 +5,21 @@ import (
 	"testing"
 
 	"github.com/elad57/emuq/internal/broker"
+	// "github.com/elad57/emuq/logger"
+	"go.uber.org/zap"
 )
 
 type MockConn struct {
 	net.Conn
 }
 
+type MockLogger struct {
+	zap.Logger
+}
+
 func TestNewBroker(t *testing.T) {
-	broker := broker.NewBroker()
+	logger := &MockLogger{}
+	broker := broker.NewBroker(&logger.Logger)
 	if broker == nil {
 		t.Error("Expected NewBroker to return a non-nil Broker")
 	}
@@ -22,7 +29,8 @@ func TestNewBroker(t *testing.T) {
 }
 
 func TestCreateNewEnviorment(t *testing.T) {
-	broker := broker.NewBroker()
+	logger := &MockLogger{}
+	broker := broker.NewBroker(&logger.Logger)
 	err := broker.CreateNewEnviorment("test-env")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -38,7 +46,8 @@ func TestCreateNewEnviorment(t *testing.T) {
 }
 
 func TestCreateNewQueueInEnviorment(t *testing.T) {
-	broker := broker.NewBroker()
+	logger := &MockLogger{}
+	broker := broker.NewBroker(&logger.Logger)
 	broker.CreateNewEnviorment("test-env")
 	err := broker.CreateNewQueueInEnviorment("test-queue", "test-env")
 	if err != nil {
@@ -55,7 +64,8 @@ func TestCreateNewQueueInEnviorment(t *testing.T) {
 }
 
 func TestRemoveQueueFromEnviorment(t *testing.T) {
-	broker := broker.NewBroker()
+	logger := &MockLogger{}
+	broker := broker.NewBroker(&logger.Logger)
 	broker.CreateNewEnviorment("test-env")
 	broker.CreateNewQueueInEnviorment("test-queue", "test-env")
 	err := broker.RemoveQueueFromEnviorment("test-queue", "test-env")
@@ -73,7 +83,8 @@ func TestRemoveQueueFromEnviorment(t *testing.T) {
 }
 
 func TestRemoveEnviorment(t *testing.T) {
-	broker := broker.NewBroker()
+	logger := &MockLogger{}
+	broker := broker.NewBroker(&logger.Logger)
 	broker.CreateNewEnviorment("test-env")
 	err := broker.RemoveEnviorment("test-env")
 	if err != nil {
@@ -90,7 +101,8 @@ func TestRemoveEnviorment(t *testing.T) {
 }
 
 func TestPublishMessage(t *testing.T) {
-	b := broker.NewBroker()
+	logger := &MockLogger{}
+	b := broker.NewBroker(&logger.Logger)
 	b.CreateNewEnviorment("test-env")
 	b.CreateNewQueueInEnviorment("test-queue", "test-env")
 	
@@ -102,7 +114,8 @@ func TestPublishMessage(t *testing.T) {
 }
 
 func TestSubscribeToQueue(t *testing.T) {
-	b := broker.NewBroker()
+	logger := &MockLogger{}
+	b := broker.NewBroker(&logger.Logger)
 	b.CreateNewEnviorment("test-env")
 	b.CreateNewQueueInEnviorment("test-queue", "test-env")
 

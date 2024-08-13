@@ -6,6 +6,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Broker struct {
@@ -13,10 +15,11 @@ type Broker struct {
 	State BrokerState
 }
 
-func NewBroker() *Broker {
+func NewBroker(logger *zap.Logger) *Broker {
 	return &Broker{
 		State: BrokerState{
 			Enviorments: make(map[string]Enviorment),
+			Logger: logger,
 		},
 	}
 }
@@ -35,17 +38,18 @@ func (b *Broker) PublishMessage(enviorment string, queue string, message Message
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	logger := b.State.Logger
 	if !b.isQueueExistOnEnviorment(enviorment, queue) {
 		errorMessage := fmt.Sprintf("'%s:%s' is not exist", enviorment, queue)
+		logger.Error(errorMessage)
 		return errors.New(errorMessage)
 	}
 
 	for _, subscriber := range(b.State.Enviorments[enviorment].Queues[queue].Subscribers) {
-		fmt.Println(subscriber.name)
-		subscriber.readFromQueue(message)
+		subscriber.readFromQueue(message, b.State.Logger)
 	}
 
-	fmt.Printf("Message published to topic '%s:%s': %s\n", enviorment, queue, message.Body)
+	logger.Sugar().Infof("Message published to topic '%s:%s': %s\n", enviorment, queue, message.Body)
 
 	return nil
 }
@@ -54,7 +58,8 @@ func (b *Broker) SubscribeToQueue(enviorment string, queueName string, connectio
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	
+	logger := b.State.Logger
+	logger.Info(enviorment)
 	env, ok := b.State.Enviorments[enviorment]
 	if !ok {
 		errorMessage := fmt.Sprintf("Enviorment '%s' not exist", enviorment)
@@ -79,12 +84,13 @@ func (b *Broker) SubscribeToQueue(enviorment string, queueName string, connectio
 	env.Queues[queueName] = q
 	
 	b.State.Enviorments[enviorment] = env
-	fmt.Printf("Subscribed to '%s:%s'\n", enviorment, queueName)
+	logger.Sugar().Infof("Subscribed to '%s:%s'\n", enviorment, queueName)
 	return nil
 }
 
 func (b *Broker) CreateNewEnviorment(enviorment string) error {
-	fmt.Printf("Creating '%s' enviorment\n", enviorment)
+	logger := b.State.Logger
+	logger.Sugar().Infof("Creating '%s' enviorment\n", enviorment)
 
 	_, exists := b.State.Enviorments[enviorment]
 
@@ -98,67 +104,66 @@ func (b *Broker) CreateNewEnviorment(enviorment string) error {
 		}
 	}
 
-	fmt.Println(b.State.Enviorments)
 	return nil
 }
 
 func (b *Broker) CreateNewQueueInEnviorment(queue string, enviorment string) error {
-	fmt.Printf("Creating '%s:%s'\n", enviorment, queue)
-
+	logger := b.State.Logger
+	logger.Sugar().Infof("Creating '%s:%s'", enviorment, queue)
+	
 	_, isEnviormentExist := b.State.Enviorments[enviorment]
-
+	
 	if !isEnviormentExist {
 		errorMessage := fmt.Sprintf("Enviorment '%s' not existing", enviorment)
 		return errors.New(errorMessage)
 	}
-
+	
 	_, isQueueExist := b.State.Enviorments[enviorment].Queues[queue]
 	if isQueueExist {
 		errorMessage := fmt.Sprintf("Queue '%s' is already existing", queue)
 		return errors.New(errorMessage)
 	}
-
+	
 	b.State.Enviorments[enviorment].Queues[queue] = Queue{
 		Name:        queue,
 		Description: "desc",
 		CreatedAt:   time.Now(),
 	}
-
-	fmt.Println(b.State.Enviorments)
+	
 	return nil
 }
 
 func (b *Broker) RemoveQueueFromEnviorment(queue string, enviorment string) error {
-	fmt.Printf("Removing '%s:%s'\n", enviorment, queue)
-
+	logger := b.State.Logger
+	logger.Sugar().Infof("Removing '%s:%s'\n", enviorment, queue)
+	
 	_, isEnviormentExist := b.State.Enviorments[enviorment]
 	if !isEnviormentExist {
 		errorMessage := fmt.Sprintf("Enviorment '%s' not existing", enviorment)
 		return errors.New(errorMessage)
 	}
-
+	
 	_, isQueueExist := b.State.Enviorments[enviorment].Queues[queue]
 	if !isQueueExist {
 		errorMessage := fmt.Sprintf("Queue '%s:%s' not existing", enviorment, queue)
 		return errors.New(errorMessage)
-
+		
 	}
-
+	
 	delete(b.State.Enviorments[enviorment].Queues, queue)
-	fmt.Println(b.State.Enviorments)
 	return nil
 }
 
 func (b *Broker) RemoveEnviorment(enviorment string) error {
-	fmt.Printf("Removing '%s' enviorment\n", enviorment)
+	logger := b.State.Logger
+	logger.Sugar().Infof("Removing '%s' enviorment\n", enviorment)
 	_, isExist := b.State.Enviorments[enviorment]
-
+	
 	if !isExist {
 		errorMessage := fmt.Sprintf("Enviorment '%s' is not existing", enviorment)
 		return errors.New(errorMessage)
 	}
 
 	delete(b.State.Enviorments, enviorment)
-	fmt.Println(b.State.Enviorments)
 	return nil
 }

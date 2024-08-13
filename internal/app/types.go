@@ -6,6 +6,7 @@ import (
 
 	"github.com/elad57/emuq/internal/broker"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 type ClientMessageType string
@@ -17,6 +18,7 @@ const (
 )
 
 type TCPServer struct {
+	Logger        *zap.Logger
 	listenAddress string
 	ln            net.Listener
 	quitch        chan struct{}
@@ -35,4 +37,5 @@ type TCPMessage struct {
 type HttpServer struct {
 	Broker *broker.Broker
 	Router *mux.Router
+	Logger  *zap.Logger
 }
