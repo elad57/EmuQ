@@ -34,11 +34,6 @@ WORKDIR /app
 # Copy the binary from the builder stage
 COPY --from=builder /app/main .
 
-# Copy the logs.txt file and change its ownership and permissions
-COPY --from=builder /app/logs.txt .
-RUN chown nonroot:nonroot /app/logs.txt
-RUN chmod 644 /app/logs.txt
-
 # Change the ownership of the directory
 RUN chown -R nonroot:nonroot /app
 
